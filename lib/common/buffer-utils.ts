@@ -1,11 +1,6 @@
-'use strict'
+import { Buffer } from 'buffer'
 
-// Note: Don't use destructuring assignment for `Buffer`, or we'll hit a
-// browserify bug that makes the statement invalid, throwing an error in
-// sandboxed renderer.
-const Buffer = require('buffer').Buffer
-
-const typedArrays = {
+const typedArrays: Record<string, Function> = {
   Buffer,
   ArrayBuffer,
   Int8Array,
@@ -19,16 +14,16 @@ const typedArrays = {
   Float64Array
 }
 
-function getType (value) {
+function getType (value: BufferSource) {
   for (const type of Object.keys(typedArrays)) {
     if (value instanceof typedArrays[type]) {
       return type
     }
   }
-  return null
+  throw new Error('Invalid buffer')
 }
 
-function getBuffer (value) {
+function getBuffer (value: BufferSource) {
   if (value instanceof Buffer) {
     return value
   } else if (value instanceof ArrayBuffer) {
@@ -38,19 +33,25 @@ function getBuffer (value) {
   }
 }
 
-exports.isBuffer = function (value) {
+export function isBuffer (value: BufferSource) {
   return ArrayBuffer.isView(value) || value instanceof ArrayBuffer
 }
 
-exports.bufferToMeta = function (value) {
+interface BufferMeta {
+  type: keyof typeof typedArrays;
+  data: Buffer;
+  length: number;
+}
+
+export function bufferToMeta (value: BufferSource): BufferMeta {
   return {
     type: getType(value),
     data: getBuffer(value),
-    length: value.length
+    length: (value as Buffer).length
   }
 }
 
-exports.metaToBuffer = function (value) {
+export function metaToBuffer (value: BufferMeta) {
   const constructor = typedArrays[value.type]
   const data = getBuffer(value.data)
 
@@ -59,7 +60,7 @@ exports.metaToBuffer = function (value) {
   } else if (constructor === ArrayBuffer) {
     return data.buffer
   } else if (constructor) {
-    return new constructor(data.buffer, data.byteOffset, value.length)
+    return new (constructor as any)(data.buffer, data.byteOffset, value.length)
   } else {
     return data
   }
