@@ -63,7 +63,7 @@ def main():
 
   # CI's npm is not reliable.
   npm = 'npm.cmd' if PLATFORM == 'win32' else 'npm'
-  execute([npm, 'install', 'npm@2.12.1'])
+  # execute([npm, 'install', 'npm@2.12.1'])
 
   log_versions()
   # Add "./node_modules/.bin" to the beginning of $PATH, which will ensure
